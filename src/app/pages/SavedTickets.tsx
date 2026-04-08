@@ -1,0 +1,266 @@
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router';
+import { Trash2, Clock, Calendar, MapPin, Minus, Plus, ShoppingBag } from 'lucide-react';
+import { mockApi } from '../services/mockApi';
+import type { TicketReservation } from '../types';
+import { toast } from 'sonner';
+
+export function SavedTickets() {
+  const [reservations, setReservations] = useState<TicketReservation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [timeRemaining, setTimeRemaining] = useState<Record<string, number>>({});
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    loadReservations();
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeRemaining(prev => {
+        const newTimes = { ...prev };
+        reservations.forEach(res => {
+          const expiresAt = new Date(res.expires_at).getTime();
+          const now = Date.now();
+          const remaining = Math.max(0, expiresAt - now);
+          newTimes[res.id] = remaining;
+        });
+        return newTimes;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [reservations]);
+
+  const loadReservations = async () => {
+    setLoading(true);
+    try {
+      const data = await mockApi.getSavedTickets();
+      setReservations(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemove = async (id: string) => {
+    try {
+      await mockApi.deleteSavedTicket(id);
+      setReservations(prev => prev.filter(r => r.id !== id));
+      toast.success('Ticket removed');
+    } catch (error) {
+      toast.error('Failed to remove ticket');
+    }
+  };
+
+  const handleUpdateQuantity = async (id: string, newQuantity: number) => {
+    if (newQuantity < 1) return;
+    try {
+      await mockApi.updateSavedTicket(id, newQuantity);
+      setReservations(prev =>
+        prev.map(r =>
+          r.id === id
+            ? {
+                ...r,
+                quantity: newQuantity,
+                subtotal: r.unit_price * newQuantity,
+                service_fee: (r.unit_price * newQuantity * 0.1),
+                total_price: r.unit_price * newQuantity * 1.1,
+              }
+            : r
+        )
+      );
+    } catch (error) {
+      toast.error('Failed to update quantity');
+    }
+  };
+
+  const handleCheckout = () => {
+    navigate('/checkout');
+  };
+
+  const formatTime = (ms: number) => {
+    const minutes = Math.floor(ms / 60000);
+    const seconds = Math.floor((ms % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const totals = reservations.reduce(
+    (acc, res) => ({
+      subtotal: acc.subtotal + res.subtotal,
+      service_fee: acc.service_fee + res.service_fee,
+      total: acc.total + res.total_price,
+    }),
+    { subtotal: 0, service_fee: 0, total: 0 }
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin size-12 border-4 border-gray-300 border-t-gray-900 rounded-full mb-4" />
+          <p className="text-gray-500">Loading saved tickets...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (reservations.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
+        <div className="text-center max-w-md">
+          <div className="inline-flex items-center justify-center size-20 bg-gray-100 rounded-full mb-6">
+            <ShoppingBag className="size-10 text-gray-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">No Saved Tickets</h2>
+          <p className="text-gray-600 mb-8">
+            You haven't reserved any tickets yet. Browse events and reserve your spot!
+          </p>
+          <Link
+            to="/discover"
+            className="inline-block px-6 py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors"
+          >
+            Discover Events
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-12 px-6">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Saved Tickets</h1>
+        <p className="text-gray-600 mb-8">
+          Complete your purchase before the timer expires
+        </p>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Ticket Items */}
+          <div className="lg:col-span-2 space-y-4">
+            {reservations.map((reservation) => (
+              <div key={reservation.id} className="bg-white rounded-xl shadow-sm p-6">
+                <div className="flex gap-6">
+                  <div className="w-40 h-28 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
+                    {reservation.event?.thumbnail_url ? (
+                      <img
+                        src={reservation.event.thumbnail_url}
+                        alt={reservation.event.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Calendar className="size-8 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="font-bold text-lg text-gray-900 mb-1">
+                          {reservation.event?.title}
+                        </h3>
+                        <p className="text-sm text-gray-500 mb-2">
+                          {reservation.ticket_type?.tier_name} Ticket
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleRemove(reservation.id)}
+                        className="text-red-600 hover:text-red-700 p-2"
+                      >
+                        <Trash2 className="size-5" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-6 mb-4">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => handleUpdateQuantity(reservation.id, reservation.quantity - 1)}
+                          className="size-8 flex items-center justify-center border border-gray-300 rounded hover:bg-gray-50"
+                        >
+                          <Minus className="size-4" />
+                        </button>
+                        <span className="font-semibold text-gray-900 w-8 text-center">
+                          {reservation.quantity}
+                        </span>
+                        <button
+                          onClick={() => handleUpdateQuantity(reservation.id, reservation.quantity + 1)}
+                          className="size-8 flex items-center justify-center border border-gray-300 rounded hover:bg-gray-50"
+                        >
+                          <Plus className="size-4" />
+                        </button>
+                      </div>
+
+                      <div className="text-sm text-gray-600">
+                        <span className="font-semibold text-gray-900">
+                          {reservation.unit_price} ETB
+                        </span>{' '}
+                        each
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-50 px-3 py-2 rounded-lg">
+                      <Clock className="size-4" />
+                      <span className="font-semibold">
+                        Expires in {formatTime(timeRemaining[reservation.id] || 0)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Summary Panel */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-sm p-6 sticky top-24">
+              <h2 className="text-lg font-bold text-gray-900 mb-4">Order Summary</h2>
+
+              <div className="space-y-3 mb-6">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Subtotal</span>
+                  <span className="font-semibold text-gray-900">{totals.subtotal.toFixed(2)} ETB</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Service Fee</span>
+                  <span className="font-semibold text-gray-900">{totals.service_fee.toFixed(2)} ETB</span>
+                </div>
+                <div className="pt-3 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-gray-900">Total</span>
+                    <span className="text-2xl font-bold text-gray-900">
+                      {totals.total.toFixed(2)} ETB
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={handleCheckout}
+                className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors mb-4"
+              >
+                Proceed to Checkout
+              </button>
+
+              <Link
+                to="/discover"
+                className="block text-center text-sm text-gray-600 hover:text-gray-900"
+              >
+                Continue Shopping
+              </Link>
+
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className="flex items-start gap-2 text-sm text-gray-600">
+                  <Clock className="size-5 text-gray-400 flex-shrink-0 mt-0.5" />
+                  <p>
+                    Your tickets are reserved for 15 minutes. Complete checkout before the timer expires or they will be released.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
