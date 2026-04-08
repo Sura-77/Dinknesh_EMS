@@ -1,0 +1,581 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  attendee
+  organizer
+  staff
+  security
+  admin
+}
+
+enum UserStatus {
+  active
+  pending
+  suspended
+  deleted
+}
+
+enum OtpPurpose {
+  signup
+  login
+  reset_password
+  verify_email
+  verify_phone
+}
+
+enum OrganizationType {
+  non_profit
+  corporate
+  individual
+  government
+}
+
+enum VerificationStatus {
+  pending
+  approved
+  rejected
+}
+
+enum EventStatus {
+  draft
+  published
+  cancelled
+  completed
+}
+
+enum LocationType {
+  physical
+  online
+  hybrid
+}
+
+enum ReservationStatus {
+  active
+  expired
+  paid
+  cancelled
+}
+
+enum OrderStatus {
+  pending
+  paid
+  failed
+  refunded
+}
+
+enum TicketStatus {
+  active
+  used
+  cancelled
+  refunded
+}
+
+enum ScanResult {
+  valid
+  already_scanned
+  invalid
+}
+
+enum StaffRole {
+  staff
+  security
+}
+
+enum ReviewStatus {
+  visible
+  hidden
+  pending
+}
+
+model User {
+  id                 String    @id @default(uuid())
+  first_name         String
+  last_name          String
+  full_name          String
+  email              String    @unique
+  phone_number       String?
+  password_hash      String
+  role               UserRole  @default(attendee)
+  status             UserStatus @default(active)
+  email_verified     Boolean   @default(false)
+  phone_verified     Boolean   @default(false)
+  default_language   String    @default("en")
+  theme_preference   String    @default("light")
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+  last_login_at      DateTime?
+
+  otp_verifications      OtpVerification[]
+  password_reset_tokens  PasswordResetToken[]
+  organizer_profile      OrganizerProfile?
+  ticket_reservations    TicketReservation[]
+  orders                 Order[]
+  ticket_wallets         TicketWallet[]
+  saved_events           SavedEvent[]
+  event_reviews          EventReview[]
+  notifications          Notification[]
+  staff_member           StaffMember?
+
+  @@map("users")
+}
+
+model OtpVerification {
+  id           String     @id @default(uuid())
+  user_id      String
+  purpose      OtpPurpose
+  code_hash    String
+  expires_at   DateTime
+  attempt_count Int       @default(0)
+  verified_at  DateTime?
+  created_at   DateTime   @default(now())
+
+  user         User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("otp_verifications")
+}
+
+model PasswordResetToken {
+  id         String    @id @default(uuid())
+  user_id    String
+  token_hash String
+  expires_at DateTime
+  used_at    DateTime?
+  created_at DateTime  @default(now())
+
+  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+model OrganizerProfile {
+  id                          String             @id @default(uuid())
+  user_id                     String             @unique
+  organization_name           String
+  organization_type           OrganizationType
+  website_url                 String?
+  bio                         String?
+  logo_url                    String?
+  tax_id_number               String?
+  business_registration_number String?
+  social_linkedin             String?
+  social_instagram            String?
+  social_x                    String?
+  work_email                  String
+  phone_number                String
+  bank_account_name           String?
+  bank_account_number         String?
+  iban                        String?
+  swift_code                  String?
+  routing_number              String?
+  payout_currency             String            @default("ETB")
+  verification_status         VerificationStatus @default(pending)
+  approved_by_admin_id        String?
+  approved_at                 DateTime?
+  created_at                  DateTime           @default(now())
+  updated_at                  DateTime           @updatedAt
+
+  user                        User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  events                      Event[]
+  staff_members               StaffMember[]
+  documents                   OrganizerDocument[]
+
+  @@map("organizer_profiles")
+}
+
+model OrganizerDocument {
+  id                   String   @id @default(uuid())
+  organizer_profile_id String
+  document_type        String
+  file_url             String
+  status               String   @default("pending")
+  uploaded_at          DateTime @default(now())
+
+  organizer_profile    OrganizerProfile @relation(fields: [organizer_profile_id], references: [id], onDelete: Cascade)
+
+  @@map("organizer_documents")
+}
+
+model StaffMember {
+  id                   String    @id @default(uuid())
+  organizer_profile_id String
+  full_name            String
+  email                String
+  phone_number         String
+  assigned_role        StaffRole
+  staff_badge_id       String    @unique
+  user_id              String?   @unique
+  status               String    @default("active")
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+
+  organizer_profile    OrganizerProfile @relation(fields: [organizer_profile_id], references: [id], onDelete: Cascade)
+  user                 User?     @relation(fields: [user_id], references: [id])
+  security_sessions    SecuritySession[]
+  ticket_scans         TicketScan[]
+
+  @@map("staff_members")
+}
+
+model SecuritySession {
+  id              String    @id @default(uuid())
+  event_id        String
+  staff_member_id String
+  device_name     String?
+  started_at      DateTime  @default(now())
+  ended_at        DateTime?
+  status          String    @default("active")
+
+  event           Event       @relation(fields: [event_id], references: [id])
+  staff_member    StaffMember @relation(fields: [staff_member_id], references: [id])
+
+  @@map("security_sessions")
+}
+
+model EventCategory {
+  id       String  @id @default(uuid())
+  name     String
+  slug     String  @unique
+  icon_url String?
+  is_active Boolean @default(true)
+
+  events   Event[]
+
+  @@map("event_categories")
+}
+
+model EventTag {
+  id   String @id @default(uuid())
+  name String
+  slug String @unique
+
+  event_tag_map EventTagMap[]
+
+  @@map("event_tags")
+}
+
+model EventTagMap {
+  event_id String
+  tag_id   String
+
+  event    Event    @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  tag      EventTag @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+
+  @@id([event_id, tag_id])
+  @@map("event_tag_map")
+}
+
+model Event {
+  id                   String      @id @default(uuid())
+  organizer_profile_id String
+  title                String
+  category_id          String
+  event_type           String
+  description          String
+  rich_description_html String?
+  image_url            String?
+  thumbnail_url        String?
+  status               EventStatus @default(draft)
+  visibility           String      @default("public")
+  is_featured          Boolean     @default(false)
+  is_trending          Boolean     @default(false)
+  is_nearby_enabled    Boolean     @default(true)
+  created_at           DateTime    @default(now())
+  updated_at           DateTime    @updatedAt
+
+  organizer_profile    OrganizerProfile @relation(fields: [organizer_profile_id], references: [id])
+  category             EventCategory    @relation(fields: [category_id], references: [id])
+  schedule             EventSchedule?
+  venue                EventVenue?
+  ticket_types         TicketType[]
+  ticket_reservations  TicketReservation[]
+  digital_tickets      DigitalTicket[]
+  reviews              EventReview[]
+  saved_by             SavedEvent[]
+  media                EventMedia[]
+  tag_map              EventTagMap[]
+  attendance_stats     EventAttendanceStats?
+  featured_banners     FeaturedEventBanner[]
+  security_sessions    SecuritySession[]
+  ticket_scans         TicketScan[]
+
+  @@map("events")
+}
+
+model EventSchedule {
+  id                   String   @id @default(uuid())
+  event_id             String   @unique
+  start_datetime       DateTime
+  end_datetime         DateTime
+  timezone             String   @default("Africa/Addis_Ababa")
+  sales_start_datetime DateTime
+  sales_end_datetime   DateTime
+
+  event                Event    @relation(fields: [event_id], references: [id], onDelete: Cascade)
+
+  @@map("event_schedule")
+}
+
+model EventVenue {
+  id                 String       @id @default(uuid())
+  event_id           String       @unique
+  venue_name         String
+  address_line1      String
+  address_line2      String?
+  city               String
+  region             String
+  country            String       @default("Ethiopia")
+  latitude           Float?
+  longitude          Float?
+  google_place_id    String?
+  online_meeting_url String?
+  location_type      LocationType @default(physical)
+
+  event              Event        @relation(fields: [event_id], references: [id], onDelete: Cascade)
+
+  @@map("event_venues")
+}
+
+model EventMedia {
+  id         String @id @default(uuid())
+  event_id   String
+  media_type String
+  file_url   String
+  is_primary Boolean @default(false)
+  sort_order Int     @default(0)
+
+  event      Event  @relation(fields: [event_id], references: [id], onDelete: Cascade)
+
+  @@map("event_media")
+}
+
+model TicketType {
+  id                   String   @id @default(uuid())
+  event_id             String
+  tier_name            String
+  price                Float
+  currency             String   @default("ETB")
+  capacity             Int
+  remaining_quantity   Int
+  sales_start_datetime DateTime
+  sales_end_datetime   DateTime
+  promo_code_required  Boolean  @default(false)
+  promo_code           String?
+  is_active            Boolean  @default(true)
+
+  event                Event              @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  ticket_reservations  TicketReservation[]
+  digital_tickets      DigitalTicket[]
+
+  @@map("ticket_types")
+}
+
+model TicketReservation {
+  id             String            @id @default(uuid())
+  user_id        String
+  event_id       String
+  ticket_type_id String
+  quantity       Int
+  unit_price     Float
+  subtotal       Float
+  service_fee    Float
+  total_price    Float
+  status         ReservationStatus @default(active)
+  reserved_at    DateTime          @default(now())
+  expires_at     DateTime
+  created_at     DateTime          @default(now())
+  updated_at     DateTime          @updatedAt
+
+  user           User       @relation(fields: [user_id], references: [id])
+  event          Event      @relation(fields: [event_id], references: [id])
+  ticket_type    TicketType @relation(fields: [ticket_type_id], references: [id])
+  order          Order?
+
+  @@map("ticket_reservations")
+}
+
+model Order {
+  id             String      @id @default(uuid())
+  user_id        String
+  reservation_id String      @unique
+  order_number   String      @unique
+  status         OrderStatus @default(pending)
+  subtotal       Float
+  service_fee    Float
+  total_amount   Float
+  payment_method String?
+  paid_at        DateTime?
+  created_at     DateTime    @default(now())
+
+  user           User              @relation(fields: [user_id], references: [id])
+  reservation    TicketReservation @relation(fields: [reservation_id], references: [id])
+  payment        Payment?
+  ticket_wallet  TicketWallet?
+
+  @@map("orders")
+}
+
+model Payment {
+  id                     String   @id @default(uuid())
+  order_id               String   @unique
+  provider_name          String   @default("chapa")
+  provider_transaction_id String?
+  amount                 Float
+  currency               String   @default("ETB")
+  status                 String   @default("pending")
+  paid_at                DateTime?
+  raw_response_json      Json?
+
+  order                  Order    @relation(fields: [order_id], references: [id])
+
+  @@map("payments")
+}
+
+model TicketWallet {
+  id         String   @id @default(uuid())
+  user_id    String
+  order_id   String   @unique
+  created_at DateTime @default(now())
+
+  user           User            @relation(fields: [user_id], references: [id])
+  order          Order           @relation(fields: [order_id], references: [id])
+  digital_tickets DigitalTicket[]
+
+  @@map("ticket_wallets")
+}
+
+model DigitalTicket {
+  id               String       @id @default(uuid())
+  ticket_wallet_id String
+  event_id         String
+  ticket_type_id   String
+  ticket_code      String       @unique
+  qr_payload       String
+  qr_image_url     String?
+  purchase_date    DateTime     @default(now())
+  seat_number      String?
+  status           TicketStatus @default(active)
+
+  ticket_wallet    TicketWallet @relation(fields: [ticket_wallet_id], references: [id])
+  event            Event        @relation(fields: [event_id], references: [id])
+  ticket_type      TicketType   @relation(fields: [ticket_type_id], references: [id])
+  scans            TicketScan[]
+
+  @@map("digital_tickets")
+}
+
+model TicketScan {
+  id                String     @id @default(uuid())
+  digital_ticket_id String
+  event_id          String
+  staff_member_id   String
+  scan_time         DateTime   @default(now())
+  scan_result       ScanResult
+  device_id         String?
+  location_note     String?
+
+  digital_ticket    DigitalTicket @relation(fields: [digital_ticket_id], references: [id])
+  event             Event         @relation(fields: [event_id], references: [id])
+  staff_member      StaffMember   @relation(fields: [staff_member_id], references: [id])
+
+  @@map("ticket_scans")
+}
+
+model EventAttendanceStats {
+  id                 String   @id @default(uuid())
+  event_id           String   @unique
+  tickets_sold_total Int      @default(0)
+  checked_in_total   Int      @default(0)
+  normal_sold        Int      @default(0)
+  vip_sold           Int      @default(0)
+  vvip_sold          Int      @default(0)
+  updated_at         DateTime @updatedAt
+
+  event              Event    @relation(fields: [event_id], references: [id], onDelete: Cascade)
+
+  @@map("event_attendance_stats")
+}
+
+model SavedEvent {
+  id       String   @id @default(uuid())
+  user_id  String
+  event_id String
+  saved_at DateTime @default(now())
+
+  user     User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  event    Event    @relation(fields: [event_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, event_id])
+  @@map("saved_events")
+}
+
+model EventReview {
+  id          String       @id @default(uuid())
+  event_id    String
+  user_id     String
+  rating      Int
+  review_text String
+  status      ReviewStatus @default(pending)
+  created_at  DateTime     @default(now())
+
+  event       Event        @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [user_id], references: [id])
+  replies     ReviewReply[]
+
+  @@map("event_reviews")
+}
+
+model ReviewReply {
+  id                   String   @id @default(uuid())
+  review_id            String
+  organizer_profile_id String
+  reply_text           String
+  created_at           DateTime @default(now())
+
+  review               EventReview @relation(fields: [review_id], references: [id], onDelete: Cascade)
+
+  @@map("review_replies")
+}
+
+model FeaturedEventBanner {
+  id               String  @id @default(uuid())
+  event_id         String
+  title_override   String?
+  subtitle_override String?
+  banner_image_url String
+  sort_order       Int     @default(0)
+  is_active        Boolean @default(true)
+
+  event            Event   @relation(fields: [event_id], references: [id], onDelete: Cascade)
+
+  @@map("featured_event_banners")
+}
+
+model Notification {
+  id         String    @id @default(uuid())
+  user_id    String
+  type       String
+  title      String
+  message    String
+  read_at    DateTime?
+  created_at DateTime  @default(now())
+
+  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model SystemSetting {
+  id         String   @id @default(uuid())
+  key        String   @unique
+  value      String
+  updated_at DateTime @updatedAt
+
+  @@map("system_settings")
+}
