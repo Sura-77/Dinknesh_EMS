@@ -22,9 +22,22 @@ export function Login() {
     try {
       await login(email, password);
       toast.success('Welcome back!');
-      navigate(from);
-    } catch (error) {
-      toast.error('Invalid email or password');
+
+      // Redirect based on role
+      const storedUser = localStorage.getItem('user');
+      const role = storedUser ? JSON.parse(storedUser).role : 'attendee';
+
+      if (role === 'admin') {
+        navigate('/admin/dashboard');
+      } else if (role === 'organizer') {
+        navigate('/organizer/dashboard');
+      } else if (role === 'security' || role === 'staff') {
+        navigate('/security/scanner');
+      } else {
+        navigate(from === '/login' ? '/discover' : from);
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }

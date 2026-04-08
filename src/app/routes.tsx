@@ -5,6 +5,7 @@ import { Discover } from './pages/Discover';
 import { EventDetail } from './pages/EventDetail';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
+import { ForgotPassword } from './pages/ForgotPassword';
 import { SavedTickets } from './pages/SavedTickets';
 import { MyTickets } from './pages/MyTickets';
 import { OrganizerSignup } from './pages/OrganizerSignup';
@@ -48,6 +49,10 @@ export const router = createBrowserRouter([
       {
         path: 'signup',
         Component: Signup,
+      },
+      {
+        path: 'forgot-password',
+        Component: ForgotPassword,
       },
       {
         path: 'saved-tickets',

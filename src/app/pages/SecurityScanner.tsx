@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Scan, CheckCircle, XCircle, TrendingUp } from 'lucide-react';
-import { mockApi } from '../services/mockApi';
+import { api as mockApi } from '../services/api';
 import type { EventStats } from '../types';
 import { motion } from 'motion/react';
 

@@ -62,7 +62,10 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
   }
 
   const token = jwt.sign({ id: user.id, role: user.role, email: user.email }, process.env.JWT_SECRET!, { expiresIn: process.env.JWT_EXPIRES_IN as any || '7d' });
-  res.json({ token, user: { id: user.id, email: user.email, role: user.role } });
+
+  // Return full user object so frontend can store it properly
+  const { password_hash: _, ...safeUser } = user;
+  res.json({ token, user: { ...safeUser, email_verified: true, status: 'active' } });
 });
 
 // POST /api/auth/login
@@ -78,6 +81,10 @@ router.post('/login', async (req: Request, res: Response) => {
   if (!valid) { res.status(401).json({ error: 'Invalid credentials' }); return; }
 
   if (user.status === 'suspended') { res.status(403).json({ error: 'Account suspended' }); return; }
+  if (user.status === 'deleted') { res.status(403).json({ error: 'Account not found' }); return; }
+  if (user.status === 'pending' && !user.email_verified) {
+    res.status(403).json({ error: 'Please verify your email before logging in. Check your inbox for the OTP.' }); return;
+  }
 
   await prisma.user.update({ where: { id: user.id }, data: { last_login_at: new Date() } });
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { Users, Calendar, Clock, DollarSign, CheckCircle, XCircle, Eye } from 'lucide-react';
-import { mockApi } from '../services/mockApi';
+import { api } from '../services/api';
 import { toast } from 'sonner';
 
 interface AdminStats {
@@ -48,15 +48,15 @@ export function AdminDashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const [statsData, pendingData, eventsData] = await Promise.all([
-        mockApi.getAdminStats(),
-        mockApi.getPendingOrganizers(),
-        mockApi.getRecentEvents(5),
+      const [statsData, pendingData, eventsRes] = await Promise.all([
+        api.getAdminStats(),
+        api.getPendingOrganizers(),
+        api.getAdminEvents({ limit: '5' }),
       ]);
       
       setStats(statsData);
       setPendingOrganizers(pendingData);
-      setRecentEvents(eventsData);
+      setRecentEvents(eventsRes.events || []);
     } catch (error) {
       toast.error('Failed to load dashboard data');
     } finally {
@@ -66,14 +66,10 @@ export function AdminDashboard() {
 
   const handleApprove = async (organizerId: string) => {
     try {
-      await mockApi.approveOrganizer(organizerId);
+      await api.approveOrganizer(organizerId, 'approved');
       toast.success('Organizer approved successfully');
-      // Remove from pending list
       setPendingOrganizers(prev => prev.filter(org => org.id !== organizerId));
-      // Update stats
-      if (stats) {
-        setStats({ ...stats, pending_approvals: stats.pending_approvals - 1 });
-      }
+      if (stats) setStats({ ...stats, pending_approvals: stats.pending_approvals - 1 });
     } catch (error) {
       toast.error('Failed to approve organizer');
     }
@@ -81,14 +77,10 @@ export function AdminDashboard() {
 
   const handleReject = async (organizerId: string) => {
     try {
-      await mockApi.rejectOrganizer(organizerId);
+      await api.approveOrganizer(organizerId, 'rejected');
       toast.success('Organizer rejected');
-      // Remove from pending list
       setPendingOrganizers(prev => prev.filter(org => org.id !== organizerId));
-      // Update stats
-      if (stats) {
-        setStats({ ...stats, pending_approvals: stats.pending_approvals - 1 });
-      }
+      if (stats) setStats({ ...stats, pending_approvals: stats.pending_approvals - 1 });
     } catch (error) {
       toast.error('Failed to reject organizer');
     }

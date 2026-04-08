@@ -44,8 +44,8 @@ router.post('/checkout', authenticate, async (req: AuthRequest, res: Response) =
     first_name: user.first_name,
     last_name: user.last_name,
     tx_ref,
-    callback_url: `${process.env.FRONTEND_URL}/api/orders/webhook`,
-    return_url: `${process.env.FRONTEND_URL}/checkout/success?order=${order.id}`,
+    callback_url: `${process.env.FRONTEND_URL}/checkout`,
+    return_url: `${process.env.FRONTEND_URL}/checkout?tx_ref=${tx_ref}`,
   });
 
   res.json({ checkout_url, order_id: order.id, tx_ref });

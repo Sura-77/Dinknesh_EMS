@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
+import { api } from '../services/api';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Phone } from 'lucide-react';
 
@@ -18,26 +19,18 @@ export function Signup() {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [otpError, setOtpError] = useState('');
-  const { register } = useAuth();
+  const { setUser, setToken } = useAuth();
   const navigate = useNavigate();
 
   const handleSendOTP = async () => {
-    // Validate form before sending OTP
     if (!formData.first_name || !formData.last_name || !formData.email || !formData.phone_number) {
       toast.error('Please fill in all required fields');
       return false;
     }
-
-    if (!formData.phone_number) {
-      toast.error('Phone number is required for OTP verification');
-      return false;
-    }
-
     if (formData.password !== formData.confirm_password) {
       toast.error('Passwords do not match');
       return false;
     }
-
     if (formData.password.length < 8) {
       toast.error('Password must be at least 8 characters');
       return false;
@@ -45,14 +38,20 @@ export function Signup() {
 
     setLoading(true);
     try {
-      // Mock OTP send
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Register on backend — this triggers OTP email
+      await api.register({
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.email,
+        password: formData.password,
+        phone_number: formData.phone_number,
+      });
       setOtpSent(true);
       setOtpError('');
-      toast.success('OTP sent to ' + formData.phone_number);
+      toast.success('OTP sent to ' + formData.email);
       return true;
-    } catch (error) {
-      toast.error('Failed to send OTP');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send OTP');
       return false;
     } finally {
       setLoading(false);
@@ -62,13 +61,11 @@ export function Signup() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // If OTP not sent yet, send it first
     if (!otpSent) {
       await handleSendOTP();
       return;
     }
 
-    // Validate OTP
     if (otp.length !== 6) {
       setOtpError('Please enter the 6-digit OTP code');
       return;
@@ -76,19 +73,18 @@ export function Signup() {
 
     setLoading(true);
     try {
-      await register({
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        email: formData.email,
-        password: formData.password,
-        phone_number: formData.phone_number,
-        otp_code: otp,
-      });
+      // Verify OTP — backend returns full token + user
+      const response = await api.verifyOTPAndLogin(formData.email, otp, 'signup');
+      // Set auth state directly
+      setUser(response.user);
+      setToken(response.token);
+      localStorage.setItem('authToken', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
       toast.success('Account created successfully!');
       navigate('/discover');
-    } catch (error) {
+    } catch (error: any) {
       setOtpError('Invalid OTP code. Please try again.');
-      toast.error('Failed to create account');
+      toast.error(error.message || 'Failed to verify OTP');
     } finally {
       setLoading(false);
     }

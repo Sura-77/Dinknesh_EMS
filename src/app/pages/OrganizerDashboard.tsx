@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { TrendingUp, Users, DollarSign, Calendar, BarChart3, UserCog } from 'lucide-react';
-import { mockApi } from '../services/mockApi';
+import { api as mockApi } from '../services/api';
 import type { OrganizerDashboard as DashboardData, EventStats } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 

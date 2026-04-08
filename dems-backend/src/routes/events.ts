@@ -90,6 +90,7 @@ router.post('/', authenticate, requireRole('organizer', 'admin'), async (req: Au
       organizer_profile_id: organizer.id,
       title, category_id, event_type, description, rich_description_html,
       image_url, thumbnail_url, visibility: visibility || 'public',
+      status: 'published',
       schedule: schedule ? { create: schedule } : undefined,
       venue: venue ? { create: venue } : undefined,
       ticket_types: ticket_types ? { create: ticket_types } : undefined,

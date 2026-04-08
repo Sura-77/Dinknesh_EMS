@@ -4,17 +4,29 @@ import prisma from '../lib/prisma';
 const EXPIRY_MINUTES = Number(process.env.RESERVATION_EXPIRY_MINUTES) || 15;
 
 export async function setReservationTimer(reservationId: string): Promise<void> {
-  const expirySeconds = EXPIRY_MINUTES * 60;
-  await redis.setex(`reservation:${reservationId}`, expirySeconds, 'active');
+  try {
+    const expirySeconds = EXPIRY_MINUTES * 60;
+    await redis.setex(`reservation:${reservationId}`, expirySeconds, 'active');
+  } catch {
+    // Redis unavailable — timer won't work but reservation still saved in DB
+  }
 }
 
 export async function cancelReservationTimer(reservationId: string): Promise<void> {
-  await redis.del(`reservation:${reservationId}`);
+  try {
+    await redis.del(`reservation:${reservationId}`);
+  } catch {
+    // ignore
+  }
 }
 
 export async function isReservationActive(reservationId: string): Promise<boolean> {
-  const val = await redis.get(`reservation:${reservationId}`);
-  return val !== null;
+  try {
+    const val = await redis.get(`reservation:${reservationId}`);
+    return val !== null;
+  } catch {
+    return true; // assume active if Redis is down
+  }
 }
 
 // Call this on a cron or background job to expire stale reservations

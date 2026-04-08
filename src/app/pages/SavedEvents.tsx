@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Calendar, MapPin, Bookmark, Trash2 } from 'lucide-react';
-import { mockApi } from '../services/mockApi';
+import { api as mockApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -69,29 +69,24 @@ export function SavedEvents() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-6">
+    <div className="min-h-screen py-12 px-6 transition-colors bg-gray-50 dark:bg-gray-950">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <Bookmark className="size-8 text-gray-900" />
-            <h1 className="text-3xl font-bold text-gray-900">Saved Events</h1>
+            <Bookmark className="size-8 text-gray-900 dark:text-white" />
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Saved Events</h1>
           </div>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400">
             Events you've bookmarked for later • {savedEvents.length} {savedEvents.length === 1 ? 'event' : 'events'}
           </p>
         </div>
 
         {savedEvents.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-            <Bookmark className="size-16 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">No Saved Events</h2>
-            <p className="text-gray-600 mb-6">
-              You haven't saved any events yet. Browse events and save your favorites!
-            </p>
-            <Link
-              to="/discover"
-              className="inline-block px-6 py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors"
-            >
+          <div className="rounded-xl shadow-sm p-12 text-center bg-white dark:bg-gray-900">
+            <Bookmark className="size-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Saved Events</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">You haven't saved any events yet.</p>
+            <Link to="/discover" className="inline-block px-6 py-3 rounded-lg font-semibold transition-colors bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100">
               Browse Events
             </Link>
           </div>
@@ -100,63 +95,36 @@ export function SavedEvents() {
             {savedEvents.map((saved) => {
               const event = saved.event;
               if (!event) return null;
-
               return (
-                <div
-                  key={saved.id}
-                  className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow group"
-                >
+                <div key={saved.id} className="rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow group bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
                   <div className="relative">
                     <Link to={`/events/${event.id}`}>
                       <div className="aspect-video overflow-hidden">
-                        <img
-                          src={event.image_url}
-                          alt={event.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
+                        <img src={event.image_url} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                       </div>
                     </Link>
-                    <button
-                      onClick={() => handleUnsave(event.id)}
-                      className="absolute top-3 right-3 size-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-lg"
-                      title="Remove from saved"
-                    >
+                    <button onClick={() => handleUnsave(event.id)}
+                      className="absolute top-3 right-3 size-10 rounded-full flex items-center justify-center shadow-lg transition-colors bg-white/90 dark:bg-gray-900/90 hover:bg-white dark:hover:bg-gray-900">
                       <Trash2 className="size-4 text-red-500" />
                     </button>
                   </div>
-
                   <div className="p-5">
                     <Link to={`/events/${event.id}`}>
-                      <h3 className="font-bold text-lg text-gray-900 mb-2 line-clamp-2 hover:underline">
-                        {event.title}
-                      </h3>
+                      <h3 className="font-bold text-lg mb-2 line-clamp-2 hover:underline text-gray-900 dark:text-white">{event.title}</h3>
                     </Link>
-
-                    <div className="space-y-2 text-sm text-gray-600">
+                    <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                       <div className="flex items-center gap-2">
                         <Calendar className="size-4 text-gray-400" />
                         <span>{formatDate(event.schedule?.start_datetime || event.created_at)}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <MapPin className="size-4 text-gray-400" />
-                        <span className="line-clamp-1">
-                          {event.venue?.venue_name || event.venue?.city || 'Location TBA'}
-                        </span>
+                        <span className="line-clamp-1">{event.venue?.venue_name || event.venue?.city || 'Location TBA'}</span>
                       </div>
                     </div>
-
-                    <div className="mt-4 pt-4 border-t border-gray-100">
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-gray-500">
-                          Saved {formatDate(saved.saved_at)}
-                        </div>
-                        <Link
-                          to={`/events/${event.id}`}
-                          className="text-sm font-semibold text-gray-900 hover:underline"
-                        >
-                          View Details
-                        </Link>
-                      </div>
+                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Saved {formatDate(saved.saved_at)}</div>
+                      <Link to={`/events/${event.id}`} className="text-sm font-semibold text-gray-900 dark:text-white hover:underline">View Details</Link>
                     </div>
                   </div>
                 </div>

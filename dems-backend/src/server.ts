@@ -5,6 +5,14 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
 
+// Prevent unhandled rejections from crashing the server
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err.message);
+});
+
 import authRoutes from './routes/auth';
 import eventRoutes from './routes/events';
 import ticketRoutes from './routes/tickets';
@@ -15,6 +23,7 @@ import staffRoutes from './routes/staff';
 import scannerRoutes from './routes/scanner';
 import categoryRoutes from './routes/categories';
 import profileRoutes from './routes/profile';
+import uploadRoutes from './routes/upload';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -50,6 +59,7 @@ app.use('/api/staff', staffRoutes);
 app.use('/api/scanner', scannerRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {

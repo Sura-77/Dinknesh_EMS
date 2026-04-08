@@ -3,7 +3,7 @@ import { Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 
 export function Footer() {
   return (
-    <footer className="bg-gray-900 text-gray-300 mt-auto">
+    <footer className="bg-gray-900 dark:bg-gray-950 text-gray-300 mt-auto border-t border-gray-800 transition-colors">
       {/* Woven pattern accent */}
       <div className="h-1 flex">
         <div className="flex-1 bg-green-600" />
