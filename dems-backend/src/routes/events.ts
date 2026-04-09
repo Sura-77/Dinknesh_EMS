@@ -19,22 +19,69 @@ const eventSelect = {
 
 // GET /api/events - list published events with filters
 router.get('/', async (req: Request, res: Response) => {
-  const { q, category, type, city, featured, trending, page = '1', limit = '12' } = req.query;
+  const {
+    q, category, type, city, featured, trending,
+    location_type, min_price, max_price, min_rating,
+    tag, page = '1', limit = '50',
+  } = req.query;
 
   const where: any = { status: 'published', visibility: 'public' };
-  if (q) where.OR = [{ title: { contains: String(q), mode: 'insensitive' } }, { description: { contains: String(q), mode: 'insensitive' } }];
+
+  // Text search — title, description, tags
+  if (q) {
+    where.OR = [
+      { title: { contains: String(q), mode: 'insensitive' } },
+      { description: { contains: String(q), mode: 'insensitive' } },
+      { tag_map: { some: { tag: { name: { contains: String(q), mode: 'insensitive' } } } } },
+    ];
+  }
+
   if (category) where.category = { slug: String(category) };
   if (type) where.event_type = String(type);
   if (city) where.venue = { city: { contains: String(city), mode: 'insensitive' } };
+  if (location_type) where.venue = { ...(where.venue || {}), location_type: String(location_type) };
   if (featured === 'true') where.is_featured = true;
   if (trending === 'true') where.is_trending = true;
+  if (tag) where.tag_map = { some: { tag: { slug: String(tag) } } };
+
+  // Price filter — check against ticket_types
+  if (min_price || max_price) {
+    where.ticket_types = {
+      some: {
+        is_active: true,
+        ...(min_price ? { price: { gte: Number(min_price) } } : {}),
+        ...(max_price ? { price: { lte: Number(max_price) } } : {}),
+      },
+    };
+  }
 
   const skip = (Number(page) - 1) * Number(limit);
-  const [events, total] = await Promise.all([
-    prisma.event.findMany({ where, select: eventSelect, skip, take: Number(limit), orderBy: { created_at: 'desc' } }),
-    prisma.event.count({ where }),
-  ]);
+  let events = await prisma.event.findMany({
+    where,
+    select: {
+      ...eventSelect,
+      tag_map: { include: { tag: true } },
+      ticket_types: { where: { is_active: true }, select: { price: true, tier_name: true } },
+    },
+    skip,
+    take: Number(limit),
+    orderBy: { created_at: 'desc' },
+  });
 
+  // Rating filter (computed from reviews — filter in memory since it's not stored as a column)
+  if (min_rating) {
+    const minR = Number(min_rating);
+    const eventIds = events.map(e => e.id);
+    const ratings = await prisma.eventReview.groupBy({
+      by: ['event_id'],
+      where: { event_id: { in: eventIds }, status: 'visible' },
+      _avg: { rating: true },
+    });
+    const ratingMap = Object.fromEntries(ratings.map(r => [r.event_id, r._avg.rating || 0]));
+    events = events.filter(e => (ratingMap[e.id] || 0) >= minR);
+  }
+
+  const total = await prisma.event.count({ where });
   res.json({ events, total, page: Number(page), limit: Number(limit) });
 });
 
@@ -80,10 +127,22 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 // POST /api/events - organizer creates event
 router.post('/', authenticate, requireRole('organizer', 'admin'), async (req: AuthRequest, res: Response) => {
-  const { title, category_id, event_type, description, rich_description_html, image_url, thumbnail_url, visibility, schedule, venue, ticket_types } = req.body;
+  const { title, category_id, event_type, description, rich_description_html, image_url, thumbnail_url, visibility, schedule, venue, ticket_types, tags } = req.body;
 
   const organizer = await prisma.organizerProfile.findUnique({ where: { user_id: req.user!.id } });
   if (!organizer) { res.status(403).json({ error: 'Organizer profile not found' }); return; }
+
+  // Upsert tags and build tag_map
+  let tagMapData: { tag_id: string }[] = [];
+  if (tags && Array.isArray(tags) && tags.length > 0) {
+    const tagRecords = await Promise.all(
+      tags.map((name: string) => {
+        const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        return prisma.eventTag.upsert({ where: { slug }, update: {}, create: { name, slug } });
+      })
+    );
+    tagMapData = tagRecords.map(t => ({ tag_id: t.id }));
+  }
 
   const event = await prisma.event.create({
     data: {
@@ -94,8 +153,9 @@ router.post('/', authenticate, requireRole('organizer', 'admin'), async (req: Au
       schedule: schedule ? { create: schedule } : undefined,
       venue: venue ? { create: venue } : undefined,
       ticket_types: ticket_types ? { create: ticket_types } : undefined,
+      tag_map: tagMapData.length > 0 ? { create: tagMapData } : undefined,
     },
-    include: { schedule: true, venue: true, ticket_types: true },
+    include: { schedule: true, venue: true, ticket_types: true, tag_map: { include: { tag: true } } },
   });
 
   res.status(201).json(event);
@@ -150,6 +210,12 @@ router.get('/:id/reviews', async (req: Request, res: Response) => {
 router.get('/:id/stats', authenticate, requireRole('organizer', 'admin', 'security', 'staff'), async (req: Request, res: Response) => {
   const stats = await prisma.eventAttendanceStats.findUnique({ where: { event_id: req.params.id } });
   res.json(stats || { event_id: req.params.id, tickets_sold_total: 0, checked_in_total: 0, normal_sold: 0, vip_sold: 0, vvip_sold: 0 });
+});
+
+// GET /api/events/tags - all available tags
+router.get('/tags/all', async (_req, res: Response) => {
+  const tags = await prisma.eventTag.findMany({ orderBy: { name: 'asc' } });
+  res.json(tags);
 });
 
 export default router;

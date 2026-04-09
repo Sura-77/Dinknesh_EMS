@@ -135,9 +135,25 @@ class API {
     return res.events;
   }
 
-  async getEvents(): Promise<Event[]> {
-    const res = await request<{ events: Event[] }>('/events');
-    return res.events;
+  async getEvents(filters?: {
+    q?: string; category?: string; city?: string; location_type?: string;
+    min_price?: number; max_price?: number; min_rating?: number; tag?: string;
+  }): Promise<Event[]> {
+    const params = new URLSearchParams();
+    if (filters?.q) params.set('q', filters.q);
+    if (filters?.category) params.set('category', filters.category);
+    if (filters?.city) params.set('city', filters.city);
+    if (filters?.location_type) params.set('location_type', filters.location_type);
+    if (filters?.min_price !== undefined) params.set('min_price', String(filters.min_price));
+    if (filters?.max_price !== undefined) params.set('max_price', String(filters.max_price));
+    if (filters?.min_rating !== undefined) params.set('min_rating', String(filters.min_rating));
+    if (filters?.tag) params.set('tag', filters.tag);
+    const res = await request<{ events: Event[] }>(`/events?${params}`);
+    return res.events || [];
+  }
+
+  async getTags(): Promise<{ id: string; name: string; slug: string }[]> {
+    return request<{ id: string; name: string; slug: string }[]>('/events/tags/all').catch(() => []);
   }
 
   async getEventById(eventId: string): Promise<EventDetailResponse> {
@@ -146,10 +162,6 @@ class API {
 
   async getCategories(): Promise<Category[]> {
     return request<Category[]>('/categories');
-  }
-
-  async getTags(): Promise<[]> {
-    return [];
   }
 
   // ── Ticket Reservations (saved tickets / cart) ────────────────────────────

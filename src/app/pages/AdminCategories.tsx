@@ -80,16 +80,16 @@ export function AdminCategories() {
   const toSlug = (name: string) => name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-4xl mx-auto px-6 py-6">
-          <Link to="/admin/dashboard" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4">
+          <Link to="/admin/dashboard" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-4">
             <ArrowLeft className="size-4" /> Back to Dashboard
           </Link>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Manage Categories</h1>
-              <p className="text-gray-600 mt-1">{categories.length} categories</p>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Manage Categories</h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">{categories.length} categories</p>
             </div>
             <button
               onClick={() => setShowAdd(true)}
@@ -104,28 +104,20 @@ export function AdminCategories() {
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Add form */}
         {showAdd && (
-          <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border-2 border-gray-900">
-            <h2 className="font-semibold text-gray-900 mb-4">New Category</h2>
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm p-6 mb-6 border-2 border-gray-900 dark:border-gray-400">
+            <h2 className="font-semibold text-gray-900 dark:text-white mb-4">New Category</h2>
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                <input
-                  type="text"
-                  value={newName}
-                  onChange={e => { setNewName(e.target.value); setNewSlug(toSlug(e.target.value)); }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-                  placeholder="Technology"
-                />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                <input type="text" value={newName} onChange={e => { setNewName(e.target.value); setNewSlug(toSlug(e.target.value)); }}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+                  placeholder="Technology" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-                <input
-                  type="text"
-                  value={newSlug}
-                  onChange={e => setNewSlug(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-                  placeholder="technology"
-                />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Slug</label>
+                <input type="text" value={newSlug} onChange={e => setNewSlug(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+                  placeholder="technology" />
               </div>
             </div>
             <div className="flex gap-3">
@@ -147,43 +139,37 @@ export function AdminCategories() {
         )}
 
         {/* Categories list */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm overflow-hidden border border-transparent dark:border-gray-800">
           {loading ? (
-            <div className="p-12 text-center text-gray-500">Loading categories...</div>
+            <div className="p-12 text-center text-gray-500 dark:text-gray-400">Loading categories...</div>
           ) : (
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="text-left px-6 py-3 font-semibold text-gray-700">Name</th>
-                  <th className="text-left px-6 py-3 font-semibold text-gray-700">Slug</th>
-                  <th className="text-left px-6 py-3 font-semibold text-gray-700">Status</th>
-                  <th className="text-left px-6 py-3 font-semibold text-gray-700">Actions</th>
+                  <th className="text-left px-6 py-3 font-semibold text-gray-700 dark:text-gray-300">Name</th>
+                  <th className="text-left px-6 py-3 font-semibold text-gray-700 dark:text-gray-300">Slug</th>
+                  <th className="text-left px-6 py-3 font-semibold text-gray-700 dark:text-gray-300">Status</th>
+                  <th className="text-left px-6 py-3 font-semibold text-gray-700 dark:text-gray-300">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {categories.map(cat => (
-                  <tr key={cat.id} className="hover:bg-gray-50">
+                  <tr key={cat.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                     <td className="px-6 py-4">
                       {editingId === cat.id ? (
-                        <input
-                          value={editName}
-                          onChange={e => setEditName(e.target.value)}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 w-full"
-                          autoFocus
-                        />
+                        <input value={editName} onChange={e => setEditName(e.target.value)}
+                          className="px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+                          autoFocus />
                       ) : (
-                        <span className="font-medium text-gray-900">{cat.name}</span>
+                        <span className="font-medium text-gray-900 dark:text-white">{cat.name}</span>
                       )}
                     </td>
                     <td className="px-6 py-4">
                       {editingId === cat.id ? (
-                        <input
-                          value={editSlug}
-                          onChange={e => setEditSlug(e.target.value)}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 w-full"
-                        />
+                        <input value={editSlug} onChange={e => setEditSlug(e.target.value)}
+                          className="px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" />
                       ) : (
-                        <code className="text-gray-500 text-xs bg-gray-100 px-2 py-0.5 rounded">{cat.slug}</code>
+                        <code className="text-gray-500 dark:text-gray-400 text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">{cat.slug}</code>
                       )}
                     </td>
                     <td className="px-6 py-4">

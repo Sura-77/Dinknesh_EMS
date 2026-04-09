@@ -74,16 +74,16 @@ export function AdminEvents() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-6 py-6">
-          <Link to="/admin/dashboard" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4">
+          <Link to="/admin/dashboard" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-4">
             <ArrowLeft className="size-4" /> Back to Dashboard
           </Link>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">All Events</h1>
-              <p className="text-gray-600 mt-1">{total.toLocaleString()} total events</p>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">All Events</h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">{total.toLocaleString()} total events</p>
             </div>
           </div>
         </div>
@@ -91,7 +91,7 @@ export function AdminEvents() {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Filters */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6 flex flex-wrap gap-4 items-center">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm p-4 mb-6 flex flex-wrap gap-4 items-center border border-transparent dark:border-gray-800">
           <div className="relative flex-1 min-w-48">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
             <input
@@ -113,31 +113,31 @@ export function AdminEvents() {
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm overflow-hidden border border-transparent dark:border-gray-800">
           {loading ? (
-            <div className="p-12 text-center text-gray-500">Loading events...</div>
+            <div className="p-12 text-center text-gray-500 dark:text-gray-400">Loading events...</div>
           ) : (
             <>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                     <tr>
-                      <th className="text-left px-6 py-3 font-semibold text-gray-700">Event</th>
-                      <th className="text-left px-6 py-3 font-semibold text-gray-700">Category</th>
-                      <th className="text-left px-6 py-3 font-semibold text-gray-700">Status</th>
-                      <th className="text-left px-6 py-3 font-semibold text-gray-700">Flags</th>
-                      <th className="text-left px-6 py-3 font-semibold text-gray-700">Created</th>
-                      <th className="text-left px-6 py-3 font-semibold text-gray-700">Actions</th>
+                      <th className="text-left px-6 py-3 font-semibold text-gray-700 dark:text-gray-300">Event</th>
+                      <th className="text-left px-6 py-3 font-semibold text-gray-700 dark:text-gray-300">Category</th>
+                      <th className="text-left px-6 py-3 font-semibold text-gray-700 dark:text-gray-300">Status</th>
+                      <th className="text-left px-6 py-3 font-semibold text-gray-700 dark:text-gray-300">Flags</th>
+                      <th className="text-left px-6 py-3 font-semibold text-gray-700 dark:text-gray-300">Created</th>
+                      <th className="text-left px-6 py-3 font-semibold text-gray-700 dark:text-gray-300">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                     {filtered.map(event => (
-                      <tr key={event.id} className="hover:bg-gray-50">
+                      <tr key={event.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                         <td className="px-6 py-4">
-                          <div className="font-medium text-gray-900 line-clamp-1">{event.title}</div>
-                          <div className="text-gray-500 text-xs">{event.organizer_profile?.organization_name}</div>
+                          <div className="font-medium text-gray-900 dark:text-white line-clamp-1">{event.title}</div>
+                          <div className="text-gray-500 dark:text-gray-400 text-xs">{event.organizer_profile?.organization_name}</div>
                         </td>
-                        <td className="px-6 py-4 text-gray-600">{event.category?.name || '—'}</td>
+                        <td className="px-6 py-4 text-gray-600 dark:text-gray-400">{event.category?.name || '—'}</td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadge(event.status)}`}>
                             {event.status}
@@ -154,7 +154,7 @@ export function AdminEvents() {
                             </button>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-gray-500">
+                        <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
                           {new Date(event.created_at).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4">

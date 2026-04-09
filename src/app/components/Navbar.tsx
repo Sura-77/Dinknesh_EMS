@@ -1,21 +1,32 @@
 import { Link, useLocation, useNavigate } from 'react-router';
-import { Search, User, LogOut, Ticket, Calendar, PlusCircle, LayoutDashboard, Shield, UserCog } from 'lucide-react';
+import { User, LogOut, Ticket, Calendar, PlusCircle, LayoutDashboard, Shield, UserCog, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useState } from 'react';
+
+function ThemeToggle({ className = '' }: { className?: string }) {
+  const { theme, setTheme } = useTheme();
+  return (
+    <button
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      aria-label="Toggle theme"
+      className={`p-2 rounded-lg transition-colors ${className}`}
+    >
+      {theme === 'dark'
+        ? <Sun className="size-4 text-yellow-400" />
+        : <Moon className="size-4 text-gray-600 dark:text-gray-300" />}
+    </button>
+  );
+}
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const role = user?.role;
 
   const handleLogout = async () => { await logout(); navigate('/'); };
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) navigate(`/events?search=${encodeURIComponent(searchQuery)}`);
-  };
 
   // ── Security / Staff ──────────────────────────────────────────────────────
   if (role === 'security' || role === 'staff') {
@@ -26,9 +37,12 @@ export function Navbar() {
             <Shield className="size-5 text-green-400" />
             <span className="text-lg font-bold">DEMS Security</span>
           </div>
-          <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:text-white">
-            <LogOut className="size-4" /> Logout
-          </button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle className="hover:bg-white/10" />
+            <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:text-white">
+              <LogOut className="size-4" /> Logout
+            </button>
+          </div>
         </div>
       </nav>
     );
@@ -57,6 +71,7 @@ export function Navbar() {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-gray-400">{user?.full_name}</span>
+            <ThemeToggle className="hover:bg-white/10" />
             <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400 hover:text-white">
               <LogOut className="size-4" /> Logout
             </button>
@@ -93,6 +108,7 @@ export function Navbar() {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-gray-600 dark:text-gray-400">{user?.full_name}</span>
+            <ThemeToggle className="hover:bg-gray-100 dark:hover:bg-gray-800" />
             <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
               <LogOut className="size-4" /> Logout
             </button>
@@ -131,22 +147,9 @@ export function Navbar() {
           )}
         </div>
 
-        <form onSubmit={handleSearch} className="flex-1 max-w-md">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
-            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search events..."
-              className="w-full pl-10 pr-4 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 transition-colors
-                bg-white dark:bg-gray-800
-                border-gray-300 dark:border-gray-700
-                text-gray-900 dark:text-gray-100
-                placeholder-gray-400 dark:placeholder-gray-500
-                focus:ring-gray-900 dark:focus:ring-gray-400" />
-          </div>
-        </form>
-
         {isAuthenticated ? (
-          <div className="relative shrink-0">
+          <div className="relative shrink-0 flex items-center gap-1">
+            <ThemeToggle className="hover:bg-gray-100 dark:hover:bg-gray-800" />
             <button onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
               <User className="size-5 text-gray-700 dark:text-gray-300" />
@@ -169,9 +172,12 @@ export function Navbar() {
             )}
           </div>
         ) : (
-          <Link to="/login" className="shrink-0 px-6 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
-            Login / Signup
-          </Link>
+          <div className="shrink-0 flex items-center gap-2">
+            <ThemeToggle className="hover:bg-gray-100 dark:hover:bg-gray-800" />
+            <Link to="/login" className="px-6 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
+              Login / Signup
+            </Link>
+          </div>
         )}
       </div>
     </nav>
